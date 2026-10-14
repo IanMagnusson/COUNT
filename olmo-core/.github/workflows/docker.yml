@@ -1,0 +1,101 @@
+name: Docker
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  # TODO: disabled for now because it OOMs GHA runners in CI. Can re-enable by
+  # migrating to Beaker when it has the capability to build docker images from
+  # within batch jobs (currently Beaker only supports building images inside of
+  # interactive sessions).
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'Makefile'
+  #     - 'pyproject.toml'
+  #     - 'src/olmo_core/version.py'
+  #     - 'src/Dockerfile'
+  #     - '.github/workflows/docker.yml'
+  # push:
+  #   # branches:
+  #   #   - main
+  #   tags:
+  #     - 'v*.*.*'
+
+jobs:
+  docker:
+    name: CUDA ${{ matrix.cuda }} Torch ${{ matrix.torch.version }}
+    runs-on: 8-Core-XL-Runner-Ubuntu-Latest  # 8 cores, 32GB memory
+    timeout-minutes: 60
+    env:
+      BEAKER_TOKEN: ${{ secrets.BEAKER_TOKEN }}
+      DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+      DOCKER_HUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cuda: ["12.8.1", "12.9.1"]  # NOTE: check tags for options: https://hub.docker.com/r/nvidia/cuda/tags
+        torch:
+          - version: 2.7.1
+            channel: whl/test
+          - version: 2.9.0
+            channel: whl/test
+        exclude:
+          - cuda: "12.9.1"
+            torch:
+              version: 2.7.1
+              channel: whl/test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set env vars
+        run: |
+          echo "BEAKER_WORKSPACE=$(make get-beaker-workspace)" >> $GITHUB_ENV
+
+      - name: Authenticate with Beaker
+        uses: allenai/setup-beaker@v2
+        if: env.BEAKER_TOKEN != ''
+        with:
+          token: ${{ env.BEAKER_TOKEN }}
+          workspace: ${{ env.BEAKER_WORKSPACE }}
+
+      - name: Authenticate with Docker Hub
+        if: env.DOCKER_HUB_TOKEN != ''
+        run: |
+          echo ${{ env.DOCKER_HUB_TOKEN }} | docker login -u ${{ env.DOCKER_HUB_USER }} --password-stdin
+
+      - name: Build image
+        run: |
+          #rm -rf /opt/hostedtoolcache  # clear up some disk space
+          make docker-image \
+            CUDA_VERSION=${{ matrix.cuda }} \
+            TORCH_VERSION=${{ matrix.torch.version }} \
+            INSTALL_CHANNEL=${{ matrix.torch.channel }} \
+            FA3_MAX_JOBS=4
+
+      - name: Push to GHCR
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          make ghcr-image \
+            CUDA_VERSION=${{ matrix.cuda }} \
+            TORCH_VERSION=${{ matrix.torch.version }} \
+            INSTALL_CHANNEL=${{ matrix.torch.channel }} \
+            FA3_MAX_JOBS=4
+
+      - name: Push to Beaker
+        if: env.BEAKER_TOKEN != '' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          make beaker-image \
+            CUDA_VERSION=${{ matrix.cuda }} \
+            TORCH_VERSION=${{ matrix.torch.version }} \
+            INSTALL_CHANNEL=${{ matrix.torch.channel }} \
+            FA3_MAX_JOBS=4
