@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg" alt="arXiv"></a>
+  <a href="https://arxiv.org/abs/2610.20456"><img src="https://img.shields.io/badge/arXiv-2610.20456-b31b1b.svg" alt="arXiv"></a>
   <a href="https://huggingface.co/datasets/IanMagnusson/count-ngram-tables"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-n--gram%20tables-yellow" alt="N-gram tables on Hugging Face"></a>
   <a href="https://huggingface.co/IanMagnusson/count-checkpoints-count"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoints-yellow" alt="Checkpoints on Hugging Face"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
@@ -238,7 +238,7 @@ so pointing `OLMO_ROOT_DIR` at a download lets `eval-checkpoint` find it.
 @article{magnusson2026count,
   title   = {The {COUNT}: Counting N-grams Unlocks Scaling on Host Memory and Training-Free Adaptation},
   author  = {Magnusson, Ian and Smith, Noah A. and Koh, Pang Wei},
-  journal = {arXiv preprint arXiv:XXXX.XXXXX},
+  journal = {arXiv preprint arXiv:2610.20456},
   year    = {2026}
 }
 ```
